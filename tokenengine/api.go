@@ -5,10 +5,21 @@ import (
 	"github.com/palletone/go-palletone/common/log"
 	"github.com/palletone/go-palletone/tokenengine/btcd/txscript"
 	"github.com/palletone/go-palletone/dag/modules"
+	"github.com/palletone/go-palletone/core/accounts/keystore"
+	"go/types"
 )
-
+type Engine struct{
+	Version int//in the future, our engine maybe upgrade, this version can make it easy to identity engine.
+}
+func NewEngine() *Engine{
+	return new(Engine)
+}
 //Generate a P2PKH lock script, just only need input 20bytes public key hash.
 //You can use Address.Bytes() to get address hash.
+func(e *Engine) GenerateP2PKHLockScript(pubKeyHash []byte) []byte {
+
+	return GenerateP2PKHLockScript(pubKeyHash)
+}
 func GenerateP2PKHLockScript(pubKeyHash []byte) []byte {
 
 	lock, _ := txscript.NewScriptBuilder().AddOp(txscript.OP_DUP).AddOp(txscript.OP_HASH160).
@@ -16,10 +27,9 @@ func GenerateP2PKHLockScript(pubKeyHash []byte) []byte {
 		Script()
 	return lock
 }
-
 //Give redeem script hash 160 result, generate a P2SH lock script.
 //If you have built your redeem script, please use crypto.Hash160() to gnerate hash
-func GenerateP2SHLockScript(redeemScriptHash []byte) []byte {
+func(e *Engine)  GenerateP2SHLockScript(redeemScriptHash []byte) []byte {
 
 	lock, _ := txscript.NewScriptBuilder().AddOp(txscript.OP_HASH160).
 		AddData(redeemScriptHash).AddOp(txscript.OP_EQUAL).
@@ -29,7 +39,7 @@ func GenerateP2SHLockScript(redeemScriptHash []byte) []byte {
 
 //生成多签用的赎回脚本
 //Generate redeem script
-func GenerateRedeemScript(needed byte, pubKeys [][]byte) []byte {
+func(e *Engine)  GenerateRedeemScript(needed byte, pubKeys [][]byte) []byte {
 	builder := txscript.NewScriptBuilder().AddOp(needed + 80) //OP_Number
 	for _, pubKey := range pubKeys {
 		builder = builder.AddData(pubKey)
@@ -40,13 +50,13 @@ func GenerateRedeemScript(needed byte, pubKeys [][]byte) []byte {
 	return redeemScript
 }
 
-func GenerateLockScript(address common.Address) []byte {
+func(e *Engine)  GenerateLockScript(address common.Address) []byte {
 
 	t, _ := address.Validate()
 	if t == common.PublicKeyHash {
-		return GenerateP2PKHLockScript(address.Bytes())
+		return e.GenerateP2PKHLockScript(address.Bytes())
 	} else {
-		return GenerateP2SHLockScript(address.Bytes())
+		return e.GenerateP2SHLockScript(address.Bytes())
 	}
 	// TODO contract
 }
@@ -67,14 +77,14 @@ func PickAddress(lockscript []byte) (common.Address, error) {
 
 //根据签名和公钥信息生成解锁脚本
 //Use signature and public key to generate a P2PKH unlock script
-func GenerateP2PKHUnlockScript(sign []byte, pubKey []byte) []byte {
+func(e *Engine)  GenerateP2PKHUnlockScript(sign []byte, pubKey []byte) []byte {
 	unlock, _ := txscript.NewScriptBuilder().AddData(sign).AddData(pubKey).Script()
 	return unlock
 }
 
 //根据收集到的签名和脚本生成解锁脚本
 //Use collection signatures and redeem script to unlock
-func GenerateP2SHUnlockScript(signs [][]byte, redeemScript []byte) []byte {
+func(e *Engine)  GenerateP2SHUnlockScript(signs [][]byte, redeemScript []byte) []byte {
 	builder := txscript.NewScriptBuilder()
 	for _, sign := range signs {
 		builder = builder.AddData(sign)
@@ -84,11 +94,17 @@ func GenerateP2SHUnlockScript(signs [][]byte, redeemScript []byte) []byte {
 }
 
 //validate this transaction and input index script can unlock the utxo.
-func ScriptValidate(utxoLockScript []byte, utxoAmount int64, tx *modules.PaymentPayload, inputIndex int) error {
+func(e *Engine)  ScriptValidate(utxoLockScript []byte, utxoAmount int64, tx *modules.PaymentPayload, inputIndex int) error {
 	vm, err := txscript.NewEngine(utxoLockScript, tx, 0, txscript.StandardVerifyFlags, nil, nil, utxoAmount)
 	if err != nil {
 		log.Error("Failed to create script: ", err)
 		return err
 	}
 	return vm.Execute()
+}
+func(e *Engine) ParseAddress(lockScript []byte) common.Address{
+	return common.Address{}
+}
+func(e *Engine) SignTxInput(tx *modules.Transaction,utxoLockScript []byte,inputIdex int, store keystore.KeyStore) types.Signature{
+	return types.Signature{}
 }

@@ -23,8 +23,8 @@ func TestValidateTokenPayment(t *testing.T) {
 	// 	AddData(pubKeyHash).AddOp(txscript.OP_EQUALVERIFY).AddOp(txscript.OP_CHECKSIG).
 	// 	Script() //https://www.blockchain.com/zh-cn/btc/tx/5651870aa8c894376dbd960a22171d0ad7be057a730e14d7103ed4a6dbb34873
 	// fmt.Println(lock)
-
-	lock := GenerateP2PKHLockScript(pubKeyHash)
+	engine:=NewEngine()
+	lock := engine.GenerateP2PKHLockScript(pubKeyHash)
 	tx := buildTx()
 	//hashCache := txscript.NewTxSigHashes(tx)
 	amount := int64(31980) //0.0003198 BTC
@@ -33,7 +33,7 @@ func TestValidateTokenPayment(t *testing.T) {
 	// 	fmt.Errorf("Failed to create script: %v", err)
 	// }
 	// e := vm.Execute()
-	e := ScriptValidate(lock, amount, tx, 0)
+	e := engine.ScriptValidate(lock, amount, tx, 0)
 	if e != nil {
 		t.Fatalf("vm execute error:%s\n", e)
 	} else {
